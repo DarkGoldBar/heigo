@@ -1,107 +1,182 @@
 <script setup>
-import { RouterLink, RouterView } from 'vue-router'
-import HelloWorld from './components/HelloWorld.vue'
-import { ref } from 'vue'
+import { computed, ref } from "vue";
+import { RouterLink, RouterView, useRoute } from "vue-router";
+import { useUser } from "./composables/useUser";
 
-const name = ref('Unknown')
+const route = useRoute();
+const { user, updateUsername, reloginAsRandomUser, logout } = useUser();
 
-const getName = async () => {
-  const res = await fetch('/api/')
-  const data = await res.json()
-  name.value = data.name
+const showNameDialog = ref(false);
+const pendingName = ref(user.value.username);
+
+const title = computed(() => route.meta?.title || "Heigo");
+
+function openNameDialog() {
+  pendingName.value = user.value.username;
+  showNameDialog.value = true;
+}
+
+function saveName() {
+  updateUsername(pendingName.value);
+  showNameDialog.value = false;
 }
 </script>
 
 <template>
-  <header>
-    <img alt="Vue logo" class="logo" src="@/assets/logo.svg" width="125" height="125" />
+  <div class="app-shell">
+    <header class="topbar">
+      <RouterLink class="brand" to="/">
+        <span class="brand-mark">H</span>
+        <span class="brand-name">Heigo</span>
+      </RouterLink>
 
-    <div class="wrapper">
-      <HelloWorld msg="You did it!" />
-      <button class="green" @click="getName" aria-label="get name">
-        Name from API is: {{ name }}
-      </button>
-      <p>Edit <code>server/index.js</code> to change what the API gets</p>
-      <nav>
-        <RouterLink to="/">Home</RouterLink>
-        <RouterLink to="/about">About</RouterLink>
-      </nav>
-    </div>
-  </header>
+      <h1 class="page-title">{{ title }}</h1>
 
-  <RouterView />
+      <el-dropdown trigger="click" class="user-menu">
+        <button class="avatar-button" type="button">
+          <span class="avatar-chip" :style="{ backgroundColor: user.avatar.color }">
+            {{ user.avatar.emoji }}
+          </span>
+          <span class="username">{{ user.username }}</span>
+        </button>
+        <template #dropdown>
+          <el-dropdown-menu>
+            <el-dropdown-item @click="openNameDialog">Edit Name</el-dropdown-item>
+            <el-dropdown-item @click="reloginAsRandomUser">Sign In (Random)</el-dropdown-item>
+            <el-dropdown-item divided @click="logout">Sign Out</el-dropdown-item>
+          </el-dropdown-menu>
+        </template>
+      </el-dropdown>
+    </header>
+
+    <main class="page-content">
+      <RouterView />
+    </main>
+
+    <el-dialog v-model="showNameDialog" title="Edit Display Name" width="420px">
+      <el-input v-model="pendingName" maxlength="30" show-word-limit placeholder="Input a name" />
+      <template #footer>
+        <el-button @click="showNameDialog = false">Cancel</el-button>
+        <el-button type="primary" @click="saveName">Save</el-button>
+      </template>
+    </el-dialog>
+  </div>
 </template>
 
 <style scoped>
-header {
-  line-height: 1.5;
-  max-height: 100vh;
+.app-shell {
+  min-height: 100vh;
+  display: grid;
+  grid-template-rows: auto 1fr;
 }
 
-.logo {
-  display: block;
-  margin: 0 auto 2rem;
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 18px;
+  background: linear-gradient(120deg, #122038, #1c2f52 52%, #375d7f);
+  color: #f3f9ff;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(5px);
 }
 
-nav {
-  width: 100%;
-  font-size: 12px;
-  text-align: center;
-  margin-top: 2rem;
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: inherit;
 }
 
-nav a.router-link-exact-active {
-  color: var(--color-text);
+.brand-mark {
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  background: linear-gradient(140deg, #f7c85d, #ff8f5a);
+  color: #1f2937;
 }
 
-nav a.router-link-exact-active:hover {
-  background-color: transparent;
+.brand-name {
+  font-weight: 700;
+  letter-spacing: 0.03em;
 }
 
-nav a {
-  display: inline-block;
-  padding: 0 1rem;
-  border-left: 1px solid var(--color-border);
+.page-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-nav a:first-of-type {
-  border: 0;
+.user-menu {
+  justify-self: end;
 }
 
-button {
-  background-color: hsla(160, 100%, 37%, 1);
-  color: var(--color-background);
-  border: 0;
-  padding: 0.5rem 1rem;
-  border-radius: 0.25rem;
+.avatar-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.32);
+  border-radius: 999px;
+  padding: 6px 10px;
+  background: rgba(255, 255, 255, 0.1);
+  color: inherit;
   cursor: pointer;
-  margin: 1rem 0 0.5rem 0;
 }
 
-@media (min-width: 1024px) {
-  header {
-    display: flex;
-    place-items: center;
-    padding-right: calc(var(--section-gap) / 2);
+.avatar-chip {
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  font-size: 17px;
+}
+
+.username {
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.page-content {
+  padding: 16px;
+}
+
+@media (max-width: 760px) {
+  .topbar {
+    grid-template-columns: auto auto;
+    grid-template-areas:
+      "brand user"
+      "title title";
+    row-gap: 10px;
   }
 
-  .logo {
-    margin: 0 2rem 0 0;
+  .brand {
+    grid-area: brand;
   }
 
-  header .wrapper {
-    display: flex;
-    place-items: flex-start;
-    flex-wrap: wrap;
-  }
-
-  nav {
-    text-align: left;
-    margin-left: -1rem;
+  .page-title {
+    grid-area: title;
     font-size: 1rem;
+  }
 
-    padding: 1rem 0;
-    margin-top: 1rem;
+  .user-menu {
+    grid-area: user;
+  }
+
+  .username {
+    display: none;
   }
 }
 </style>
