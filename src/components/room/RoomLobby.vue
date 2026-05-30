@@ -76,7 +76,7 @@ async function copyInvite() {
     <footer class="lobby-actions">
       <el-button @click="copyInvite">Copy Invite Link</el-button>
       <el-button
-        v-if="!isHost && !me?.ready"
+        v-if="!me?.ready"
         type="primary"
         :disabled="!connected"
         @click="emit('ready')"
