@@ -128,7 +128,7 @@ function saveName() {
   border: 1px solid rgba(255, 255, 255, 0.32);
   border-radius: 999px;
   padding: 6px 10px;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.8);
   color: inherit;
   cursor: pointer;
 }

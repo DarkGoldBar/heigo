@@ -36,7 +36,6 @@ function joinRoom() {
 <template>
   <section class="home-grid">
     <div class="hero panel">
-      <p class="tag">Desk Game Platform</p>
       <h2>Heigo</h2>
       <p class="subtitle">A real-time room based game platform. Start with UNO and grow later.</p>
 
