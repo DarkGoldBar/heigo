@@ -45,8 +45,8 @@ export default {
         return badRequest("Invalid JSON body");
       }
 
-      if (gameType !== "uno") {
-        return badRequest("Only gameType=uno is supported right now");
+      if (!["uno", "gem_merchant"].includes(gameType)) {
+        return badRequest("Supported game types are uno and gem_merchant");
       }
 
       const roomId = crypto.randomUUID();

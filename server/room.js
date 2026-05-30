@@ -1,4 +1,4 @@
-import { applyAction, createInitialGameState, getPlayerView } from "./games/uno.js";
+import { applyAction, createInitialGameState, getPlayerView } from "./games/index.js";
 
 const ROOM_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -392,7 +392,7 @@ export class RoomDurableObject {
     }
 
     const onlineUsers = [
-      ...this.ctx.storage.sql.exec("SELECT user_id, ready FROM users WHERE status = 'online' ORDER BY joined_at ASC"),
+      ...this.ctx.storage.sql.exec("SELECT user_id, username, ready FROM users WHERE status = 'online' ORDER BY joined_at ASC"),
     ];
 
     if (onlineUsers.length < 2) {
@@ -404,8 +404,12 @@ export class RoomDurableObject {
       throw new Error("All online players must be ready");
     }
 
-    const playerIds = onlineUsers.map((row) => row.user_id);
-    const gameState = createInitialGameState(playerIds);
+    const gameType = await this.getRoomInfo("gameType", "uno");
+    const players = onlineUsers.map((row) => ({
+      userId: row.user_id,
+      username: row.username,
+    }));
+    const gameState = createInitialGameState(gameType, players);
 
     await this.setRoomInfo("annonce", gameState);
     await this.setRoomInfo("state", "playing");
@@ -459,7 +463,10 @@ export class RoomDurableObject {
     if (nextState.status === "ended") {
       this.broadcast({
         type: "game_ended",
-        payload: { winner: nextState.winner },
+        payload: {
+          winner: nextState.winner,
+          winnerUserIds: nextState.winnerUserIds || (nextState.winner ? [nextState.winner] : []),
+        },
       });
     }
   }

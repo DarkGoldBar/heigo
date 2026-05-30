@@ -23,6 +23,13 @@ const props = defineProps({
 const emit = defineEmits(["ready", "start"]);
 
 const users = computed(() => props.roomState.users || []);
+const gameType = computed(() => props.roomState.roomInfo?.gameType || "uno");
+const gameTitle = computed(() => (gameType.value === "gem_merchant" ? "Gem Merchant Lobby" : "UNO Lobby"));
+const rulesText = computed(() => (
+  gameType.value === "gem_merchant"
+    ? "Collect gems, buy development cards, reserve cards for gold, and trigger the final round at 15 points."
+    : "Classic UNO. Match by color or value. Wild cards pick color. First empty hand wins."
+));
 const onlineUsers = computed(() => users.value.filter((entry) => entry.status === "online"));
 const isHost = computed(() => props.roomState.roomInfo?.hostUserId === props.user.userid);
 const me = computed(() => users.value.find((entry) => entry.userId === props.user.userid));
@@ -43,7 +50,7 @@ async function copyInvite() {
     <header class="lobby-head">
       <div>
         <p class="eyebrow">Room</p>
-        <h2>UNO Lobby</h2>
+        <h2>{{ gameTitle }}</h2>
         <p class="room-id">ID: {{ roomId }}</p>
       </div>
       <el-tag :type="connected ? 'success' : 'danger'">{{ connected ? "Live" : "Offline" }}</el-tag>
@@ -51,7 +58,7 @@ async function copyInvite() {
 
     <div class="rules card-lite">
       <h3>Rules</h3>
-      <p>Classic UNO. Match by color or value. Wild cards pick color. First empty hand wins.</p>
+      <p>{{ rulesText }}</p>
     </div>
 
     <div class="seat-list card-lite">

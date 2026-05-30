@@ -58,6 +58,14 @@ function joinRoom() {
         </div>
         <el-button :loading="creating" type="warning">Create Room</el-button>
       </div>
+
+      <div class="game-card" @click="createRoom('gem_merchant')">
+        <div>
+          <p class="game-label">Gem Merchant</p>
+          <p class="game-desc">Collect gems, buy developments, and race to 15 points.</p>
+        </div>
+        <el-button :loading="creating" type="primary">Create Room</el-button>
+      </div>
     </div>
   </section>
 </template>
@@ -123,6 +131,7 @@ function joinRoom() {
   border: 1px solid #d0dae5;
   border-radius: 16px;
   padding: 16px;
+  margin-top: 12px;
   display: grid;
   grid-template-columns: 1fr auto;
   align-items: center;

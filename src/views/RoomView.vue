@@ -1,6 +1,7 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { useRoute } from "vue-router";
+import GemMerchantGame from "../components/games/GemMerchantGame.vue";
 import UnoGame from "../components/games/UnoGame.vue";
 import ChatPanel from "../components/room/ChatPanel.vue";
 import RoomLobby from "../components/room/RoomLobby.vue";
@@ -13,6 +14,7 @@ const scene = ref("lobby");
 
 const { user } = useUser();
 const { connected, roomState, messages, gameState, lastEvent, connect, close, send } = useWebSocket();
+const gameType = computed(() => gameState.value?.gameType || roomState.value?.roomInfo?.gameType || "uno");
 
 function joinRoom() {
   connect(roomId.value, user.value.userid, () => {
@@ -88,6 +90,18 @@ onUnmounted(close);
       />
       <ChatPanel :messages="messages" :connected="connected" @send="sendChat" />
     </div>
+
+    <GemMerchantGame
+      v-else-if="gameType === 'gem_merchant'"
+      :room-state="roomState"
+      :game-state="gameState"
+      :messages="messages"
+      :connected="connected"
+      :user="user"
+      @chat="sendChat"
+      @action="sendGameAction"
+      @back-to-lobby="scene = 'lobby'"
+    />
 
     <UnoGame
       v-else
