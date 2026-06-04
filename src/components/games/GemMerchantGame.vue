@@ -98,6 +98,23 @@ function gemClass(color) {
   return `gem-${color}`;
 }
 
+function gemTint(color) {
+  const palette = {
+    white: "rgba(248, 250, 252, 0.55)",
+    blue: "rgba(37, 99, 235, 0.50)",
+    green: "rgba(22, 163, 74, 0.50)",
+    red: "rgba(220, 38, 38, 0.50)",
+    black: "rgba(15, 23, 42, 0.55)",
+    gold: "rgba(245, 158, 11, 0.50)",
+  };
+
+  return palette[color] || "rgba(148, 163, 184, 0.35)";
+}
+
+function cardCostSummary(card) {
+  return GEM_COLORS.map((color) => Number(card?.cost?.[color] || 0)).join(", ");
+}
+
 function resetDiscardGems() {
   for (const color of ALL_GEMS) {
     discardGems[color] = 0;
@@ -299,7 +316,7 @@ function discardSelectedGems() {
             <el-popover
               placement="bottom-start"
               trigger="click"
-              width="280"
+              width="240"
               :disabled="deckCount(tier) === 0"
             >
               <template #reference>
@@ -310,9 +327,12 @@ function discardSelectedGems() {
               <div class="deck-popover-list">
                 <p v-if="!deckCards(tier).length" class="muted">No cards left in this deck.</p>
                 <article v-for="card in deckCards(tier)" :key="card.id" class="deck-popover-card">
-                  <strong>{{ card.points }} VP</strong>
-                  <span>{{ card.color }}</span>
-                  <small>{{ card.id }}</small>
+                  <div class="deck-card-line">
+                    <span class="deck-vp-badge" :style="{ backgroundColor: gemTint(card.color) }">{{ card.points }} VP</span>
+                    <span v-for="color in GEM_COLORS" :key="color" class="deck-cost-chip gem-count" :class="gemClass(color)">
+                      {{ card.cost?.[color] || 0 }}
+                    </span>
+                  </div>
                 </article>
               </div>
             </el-popover>
@@ -566,8 +586,7 @@ function discardSelectedGems() {
   border-radius: 8px;
   pointer-events: none;
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), transparent 35%);
-  min-height: auto;
-  margin-top: 8px;
+
 }
 
 .cost-list {
@@ -704,6 +723,60 @@ function discardSelectedGems() {
   --gem-bg-color: #f59e0b;
   background-color: var(--gem-bg-color);
   color: #1f2937;
+}
+
+.deck-popover-list {
+  display: grid;
+  gap: 8px;
+}
+
+.deck-popover-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 8px;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+  display: grid;
+  gap: 6px;
+}
+
+.deck-card-line,
+.deck-cost-line,
+.deck-meta-line {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.deck-meta-line {
+  color: #334155;
+  font-size: 0.86rem;
+}
+
+.deck-vp-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #0f172a;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+}
+
+.deck-card-color,
+.deck-card-id {
+  color: #475569;
+  font-size: 0.85rem;
+}
+
+.deck-cost-chip {
+  width: 1.75em;
+  height: 1.75em;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  border: 1px solid rgba(255, 255, 255, 0.6);
 }
 
 .reserved-cards {
