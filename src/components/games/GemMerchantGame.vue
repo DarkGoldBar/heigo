@@ -325,7 +325,12 @@ function discardSelectedGems() {
               Reserve
             </el-button>
           </div>
-          <article v-for="card in marketCards(tier)" :key="card.id" class="dev-card" :class="gemClass(card.color)">
+          <article
+            v-for="card in marketCards(tier)"
+            :key="card.id"
+            class="dev-card"
+            :class="[gemClass(card.color), { 'unaffordable-card': !canBuy(card) }]"
+          >
             <header>
               <strong>{{ card.points }} VP</strong>
               <span>{{ card.color }}</span>
@@ -387,7 +392,12 @@ function discardSelectedGems() {
       <section class="panel reserved" :class="{ 'disabled-panel': hasTakenGemThisTurn }">
         <h3>Your Reserved Cards</h3>
         <div class="reserved-cards">
-          <article v-for="card in me?.reservedCards || []" :key="card.id" class="dev-card compact" :class="gemClass(card.color)">
+          <article
+            v-for="card in me?.reservedCards || []"
+            :key="card.id"
+            class="dev-card compact"
+            :class="[gemClass(card.color), { 'unaffordable-card': !canBuy(card) }]"
+          >
             <header>
               <strong>{{ card.points }} VP</strong>
               <span>{{ card.color }}</span>
@@ -539,13 +549,23 @@ function discardSelectedGems() {
   gap: 8px;
 }
 
-.dev-card footer {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
+.unaffordable-card {
+  position: relative;
+  overflow: hidden;
+  opacity: 0.88;
+  filter: saturate(0.78);
+  background-color: var(--gem-bg-color, #f8fafc);
+  background-image: repeating-linear-gradient(135deg, rgb(209 207 187 / 47%) 0 10px, rgb(255 255 255 / 80%) 10px 20px);
+  background-blend-mode: multiply, normal;
 }
 
-.compact {
+.unaffordable-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 8px;
+  pointer-events: none;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), transparent 35%);
   min-height: auto;
   margin-top: 8px;
 }
@@ -647,27 +667,32 @@ function discardSelectedGems() {
 }
 
 .gem-white {
-  background: #f8fafc;
+  --gem-bg-color: #f8fafc;
+  background-color: var(--gem-bg-color);
   color: #334155;
 }
 
 .gem-blue {
-  background: #2563eb;
+  --gem-bg-color: #2563eb;
+  background-color: var(--gem-bg-color);
   color: #fff;
 }
 
 .gem-green {
-  background: #16a34a;
+  --gem-bg-color: #16a34a;
+  background-color: var(--gem-bg-color);
   color: #fff;
 }
 
 .gem-red {
-  background: #dc2626;
+  --gem-bg-color: #dc2626;
+  background-color: var(--gem-bg-color);
   color: #fff;
 }
 
 .gem-black {
-  background: #1f2937;
+  --gem-bg-color: #1f2937;
+  background-color: var(--gem-bg-color);
   color: #fff;
 }
 
@@ -676,7 +701,8 @@ function discardSelectedGems() {
 }
 
 .gem-gold {
-  background: #f59e0b;
+  --gem-bg-color: #f59e0b;
+  background-color: var(--gem-bg-color);
   color: #1f2937;
 }
 
