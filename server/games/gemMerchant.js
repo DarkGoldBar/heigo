@@ -120,11 +120,9 @@ function getInitialBankGems(playerCount) {
   };
 }
 
-function createPlayer(user) {
-  const userId = user.userId || user.user_id || user;
+function createPlayer(userId) {
   return {
     userId,
-    name: user.username || user.name || "Player",
     gems: emptyGems(),
     cards: {
       white: [],
@@ -430,8 +428,8 @@ function handleDiscardGems(gameState, player, action) {
   completeTurn(gameState, player);
 }
 
-export function createInitialGameState(users) {
-  if (users.length < 2 || users.length > 4) {
+export function createInitialGameState(userIds) {
+  if (userIds.length < 2 || userIds.length > 4) {
     throw new Error("Gem Merchant supports 2 to 4 players");
   }
 
@@ -443,16 +441,16 @@ export function createInitialGameState(users) {
   const gameState = {
     gameType: "gem_merchant",
     status: "playing",
-    players: users.map(createPlayer),
+    players: userIds.map(createPlayer),
     currentPlayerIndex: 0,
-    bankGems: getInitialBankGems(users.length),
+    bankGems: getInitialBankGems(userIds.length),
     decks,
     market: {
       tier1: [],
       tier2: [],
       tier3: [],
     },
-    nobles: createNobles().slice(0, users.length + 1),
+    nobles: createNobles().slice(0, userIds.length + 1),
     finalRoundTriggered: false,
     finalRoundTriggerUserId: null,
     finalRoundLastPlayerIndex: null,

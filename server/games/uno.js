@@ -161,6 +161,7 @@ export function createInitialGameState(playerIds) {
   const { hands, discardTop } = dealCards(playerIds, deck);
 
   return {
+    gameType: "uno",
     deck,
     discardPile: [discardTop],
     discardTop,

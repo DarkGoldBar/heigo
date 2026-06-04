@@ -1,17 +1,13 @@
 import * as gemMerchant from "./gemMerchant.js";
 import * as uno from "./uno.js";
 
-export function createInitialGameState(gameType, users) {
+export function createInitialGameState(gameType, userIds) {
   if (gameType === "uno") {
-    const playerIds = users.map((user) => user.userId || user.user_id || user);
-    return {
-      gameType: "uno",
-      ...uno.createInitialGameState(playerIds),
-    };
+    return uno.createInitialGameState(userIds);
   }
 
   if (gameType === "gem_merchant") {
-    return gemMerchant.createInitialGameState(users);
+    return gemMerchant.createInitialGameState(userIds);
   }
 
   throw new Error(`Unsupported game type: ${gameType}`);
@@ -22,10 +18,7 @@ export function applyAction(gameState, userId, action) {
     return gemMerchant.applyAction(gameState, userId, action);
   }
 
-  return {
-    gameType: "uno",
-    ...uno.applyAction(gameState, userId, action),
-  };
+  return uno.applyAction(gameState, userId, action);
 }
 
 export function getPlayerView(gameState, userId) {
@@ -33,8 +26,5 @@ export function getPlayerView(gameState, userId) {
     return gemMerchant.getPlayerView(gameState, userId);
   }
 
-  return {
-    gameType: "uno",
-    ...uno.getPlayerView(gameState, userId),
-  };
+  return uno.getPlayerView(gameState, userId);
 }

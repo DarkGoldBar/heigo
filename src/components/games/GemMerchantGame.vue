@@ -35,6 +35,16 @@ const discardGems = reactive({ white: 0, blue: 0, green: 0, red: 0, black: 0, go
 
 const myId = computed(() => props.user.userid);
 const players = computed(() => props.gameState?.players || []);
+const roomUsers = computed(() => props.roomState?.users || []);
+const usernameById = computed(() => {
+  const map = new Map();
+  for (const roomUser of roomUsers.value) {
+    if (roomUser?.userId) {
+      map.set(roomUser.userId, roomUser.username || "");
+    }
+  }
+  return map;
+});
 const currentPlayer = computed(() => players.value[props.gameState?.currentPlayerIndex] || null);
 const me = computed(() => players.value.find((player) => player.userId === myId.value) || null);
 const myTurn = computed(() => currentPlayer.value?.userId === myId.value);
@@ -45,9 +55,24 @@ const winnerNames = computed(() => {
   const winnerIds = props.gameState?.winnerUserIds || [];
   return players.value
     .filter((player) => winnerIds.includes(player.userId))
-    .map((player) => player.name || player.userId)
+    .map((player) => displayName(player.userId))
     .join(", ");
 });
+
+function shortUserId(userId) {
+  if (!userId) {
+    return "unknown";
+  }
+  return String(userId).slice(-8);
+}
+
+function displayName(userId) {
+  const username = usernameById.value.get(userId);
+  if (username) {
+    return username;
+  }
+  return shortUserId(userId);
+}
 
 function gemTotal(gems = {}) {
   return ALL_GEMS.reduce((sum, color) => sum + Number(gems[color] || 0), 0);
@@ -207,7 +232,7 @@ function discardSelectedGems() {
       <header class="game-head panel">
         <div>
           <p class="eyebrow">Gem Merchant</p>
-          <h2>{{ myTurn ? "Your turn" : `${currentPlayer?.name || "Player"}'s turn` }}</h2>
+          <h2>{{ myTurn ? "Your turn" : `${displayName(currentPlayer?.userId)}'s turn` }}</h2>
         </div>
         <div class="head-tags">
           <el-tag :type="myTurn ? 'success' : 'info'">{{ myTurn ? "Act now" : "Waiting" }}</el-tag>
@@ -329,7 +354,7 @@ function discardSelectedGems() {
         <h3>Players</h3>
         <article v-for="player in players" :key="player.userId" class="player-card" :class="{ active: player.userId === currentPlayer?.userId }">
           <header>
-            <strong>{{ player.name }}</strong>
+            <strong>{{ displayName(player.userId) }}</strong>
             <el-tag size="small">{{ player.score }} VP</el-tag>
           </header>
           <div class="mini-gems">

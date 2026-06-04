@@ -405,11 +405,8 @@ export class RoomDurableObject {
     }
 
     const gameType = await this.getRoomInfo("gameType", "uno");
-    const players = onlineUsers.map((row) => ({
-      userId: row.user_id,
-      username: row.username,
-    }));
-    const gameState = createInitialGameState(gameType, players);
+    const userIds = onlineUsers.map((row) => row.user_id);
+    const gameState = createInitialGameState(gameType, userIds);
 
     await this.setRoomInfo("annonce", gameState);
     await this.setRoomInfo("state", "playing");
