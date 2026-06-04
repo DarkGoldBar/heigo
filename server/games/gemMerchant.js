@@ -124,6 +124,7 @@ function createPlayer(userId) {
   return {
     userId,
     gems: emptyGems(),
+    takenGems: emptyGems(false),
     cards: {
       white: [],
       blue: [],
@@ -234,6 +235,10 @@ function endGame(gameState) {
 }
 
 function completeTurn(gameState, player) {
+  for (const entry of gameState.players) {
+    entry.takenGems = emptyGems(false);
+  }
+
   resolveNoble(gameState, player);
   refreshScores(gameState);
 
@@ -254,6 +259,19 @@ function completeTurn(gameState, player) {
   gameState.currentPlayerIndex = (gameState.currentPlayerIndex + 1) % gameState.players.length;
 }
 
+function countDistinctTakenColors(player) {
+  return NORMAL_GEMS.filter((color) => Number(player.takenGems[color] || 0) > 0).length;
+}
+
+function shouldEndMainAction(player) {
+  const distinctColors = countDistinctTakenColors(player);
+  return distinctColors === 3 || NORMAL_GEMS.some((color) => Number(player.takenGems[color] || 0) === 2);
+}
+
+function shouldDiscardExcessGems(player) {
+  return sumGems(player.gems) > MAX_GEMS;
+}
+
 function finishMainAction(gameState, player) {
   if (sumGems(player.gems) > MAX_GEMS) {
     gameState.pendingDiscard = {
@@ -262,7 +280,27 @@ function finishMainAction(gameState, player) {
     };
     return;
   }
+
+  if (shouldEndMainAction(player)) {
+    completeTurn(gameState, player);
+    return;
+  }
+
   completeTurn(gameState, player);
+}
+
+function handleEndTurn(gameState, player) {
+  if (gameState.pendingDiscard && gameState.pendingDiscard.userId === player.userId) {
+    throw new Error("You must discard excess gems before ending your turn");
+  }
+
+  completeTurn(gameState, player);
+}
+
+function assertMainActionNotStarted(player) {
+  if (sumGems(player.takenGems) > 0) {
+    throw new Error("You cannot buy or reserve after taking a gem this turn");
+  }
 }
 
 function handleTakeGems(gameState, player, action) {
@@ -274,28 +312,29 @@ function handleTakeGems(gameState, player, action) {
   const pickedColors = NORMAL_GEMS.filter((color) => gems[color] > 0);
   const pickedTotal = pickedColors.reduce((sum, color) => sum + gems[color], 0);
 
-  if (pickedTotal === 3) {
-    if (pickedColors.length !== 3 || pickedColors.some((color) => gems[color] !== 1)) {
-      throw new Error("Taking 3 gems requires three different colors");
-    }
-  } else if (pickedTotal === 2) {
-    if (pickedColors.length !== 1 || gems[pickedColors[0]] !== 2) {
-      throw new Error("Taking 2 gems requires one color");
-    }
-    if (gameState.bankGems[pickedColors[0]] < 4) {
-      throw new Error("The bank needs at least 4 gems of that color");
-    }
-  } else {
-    throw new Error("Take exactly 2 same-color gems or 3 different gems");
+  if (pickedTotal !== 1 || pickedColors.length !== 1 || gems[pickedColors[0]] !== 1) {
+    throw new Error("Take exactly 1 gem per action");
   }
 
-  for (const color of pickedColors) {
-    if (gameState.bankGems[color] < gems[color]) {
-      throw new Error("Not enough gems in bank");
-    }
-    gameState.bankGems[color] -= gems[color];
-    player.gems[color] += gems[color];
+  const color = pickedColors[0];
+  if (gameState.bankGems[color] < 1) {
+    throw new Error("Not enough gems in bank");
   }
+
+  const beforeDistinct = countDistinctTakenColors(player);
+  const beforeSame = Number(player.takenGems[color] || 0);
+  if (beforeSame + gems[color] > 2) {
+    throw new Error("A player can take at most 2 gems of the same color in one turn");
+  }
+
+  const afterDistinct = beforeDistinct + (beforeSame === 0 ? 1 : 0);
+  if (afterDistinct > 3) {
+    throw new Error("A player can take at most 3 different colors in one turn");
+  }
+
+  gameState.bankGems[color] -= gems[color];
+  player.gems[color] += gems[color];
+  player.takenGems[color] += gems[color];
 }
 
 function validatePayment(gameState, player, card, paymentInput) {
@@ -494,8 +533,31 @@ export function applyAction(gameStateInput, userId, action) {
 
   assertCurrentPlayer(gameState, userId);
 
+  if (action.type === "buy_card" || action.type === "reserve_card") {
+    assertMainActionNotStarted(player);
+  }
+
   if (action.type === "take_gems") {
     handleTakeGems(gameState, player, action);
+    if (shouldDiscardExcessGems(player)) {
+      gameState.pendingDiscard = {
+        userId: player.userId,
+        needDiscardCount: sumGems(player.gems) - MAX_GEMS,
+      };
+      refreshScores(gameState);
+      return gameState;
+    }
+    if (shouldEndMainAction(player)) {
+      completeTurn(gameState, player);
+      refreshScores(gameState);
+      return gameState;
+    }
+    refreshScores(gameState);
+    return gameState;
+  } else if (action.type === "end_turn") {
+    handleEndTurn(gameState, player);
+    refreshScores(gameState);
+    return gameState;
   } else if (action.type === "buy_card") {
     handleBuyCard(gameState, player, action);
   } else if (action.type === "reserve_card") {
@@ -521,6 +583,13 @@ export function getPlayerView(gameStateInput, userId) {
 
   for (const player of gameState.players) {
     player.reservedCount = player.reservedCards.length;
+    player.takenGems = {
+      white: Number(player.takenGems?.white || 0),
+      blue: Number(player.takenGems?.blue || 0),
+      green: Number(player.takenGems?.green || 0),
+      red: Number(player.takenGems?.red || 0),
+      black: Number(player.takenGems?.black || 0),
+    };
     if (player.userId !== userId) {
       player.reservedCards = [];
     }

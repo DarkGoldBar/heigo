@@ -30,7 +30,6 @@ const props = defineProps({
 
 const emit = defineEmits(["action", "chat", "back-to-lobby"]);
 
-const selectedGems = reactive({ white: 0, blue: 0, green: 0, red: 0, black: 0 });
 const discardGems = reactive({ white: 0, blue: 0, green: 0, red: 0, black: 0, gold: 0 });
 
 const myId = computed(() => props.user.userid);
@@ -51,6 +50,7 @@ const myTurn = computed(() => currentPlayer.value?.userId === myId.value);
 const pendingDiscard = computed(() => props.gameState?.pendingDiscard || null);
 const mustDiscard = computed(() => pendingDiscard.value?.userId === myId.value);
 const bankGems = computed(() => props.gameState?.bankGems || {});
+const hasTakenGemThisTurn = computed(() => gemTotal(me.value?.takenGems || {}) > 0);
 const winnerNames = computed(() => {
   const winnerIds = props.gameState?.winnerUserIds || [];
   return players.value
@@ -94,48 +94,49 @@ function gemClass(color) {
   return `gem-${color}`;
 }
 
-function resetSelectedGems() {
-  for (const color of GEM_COLORS) {
-    selectedGems[color] = 0;
-  }
-}
-
 function resetDiscardGems() {
   for (const color of ALL_GEMS) {
     discardGems[color] = 0;
   }
 }
 
-function toggleGem(color) {
+function canTakeGem(color) {
   if (!myTurn.value || mustDiscard.value || bankGems.value[color] <= 0) {
-    return;
+    return false;
   }
 
-  const pickedColors = GEM_COLORS.filter((entry) => selectedGems[entry] > 0);
-  if (selectedGems[color] > 0) {
-    selectedGems[color] = 0;
-    return;
+  const takenGems = me.value?.takenGems || {};
+  const takenCount = gemTotal(takenGems);
+  const takenColors = GEM_COLORS.filter((entry) => Number(takenGems[entry] || 0) > 0);
+
+  if (Number(takenGems[color] || 0) >= 2) {
+    return false;
   }
 
-  if (pickedColors.length >= 3) {
-    return;
+  if (takenCount >= 2 && takenColors.length >= 2 && Number(takenGems[color] || 0) > 0) {
+    return false;
   }
-  selectedGems[color] = 1;
+
+  if (Number(takenGems[color] || 0) > 0 && bankGems.value[color] < 3) {
+    return false;
+  }
+
+  return true;
 }
 
-function takeSelectedGems() {
+function takeGem(color) {
+  if (!canTakeGem(color)) {
+    return;
+  }
+
   emit("action", {
     type: "take_gems",
-    gems: { ...selectedGems },
+    gems: { [color]: 1 },
   });
-  resetSelectedGems();
 }
 
-function takeTwo(color) {
-  emit("action", {
-    type: "take_gems",
-    gems: { [color]: 2 },
-  });
+function endTurn() {
+  emit("action", { type: "end_turn" });
 }
 
 function actualCost(player, card) {
@@ -244,13 +245,8 @@ function discardSelectedGems() {
       <section class="bank panel">
         <div class="section-head">
           <h3>Bank</h3>
-          <el-button
-            size="small"
-            type="primary"
-            :disabled="!myTurn || mustDiscard || GEM_COLORS.filter((color) => selectedGems[color] > 0).length !== 3"
-            @click="takeSelectedGems"
-          >
-            Take 3
+          <el-button size="small" type="primary" :disabled="!myTurn || mustDiscard" @click="endTurn">
+            Turn End
           </el-button>
         </div>
         <div class="gem-row">
@@ -259,25 +255,15 @@ function discardSelectedGems() {
             :key="color"
             type="button"
             class="gem-token"
-            :class="[gemClass(color), { selected: selectedGems[color] > 0 }]"
-            :disabled="color === 'gold' || bankGems[color] <= 0 || !myTurn || mustDiscard"
-            @click="toggleGem(color)"
+            :class="gemClass(color)"
+            :disabled="color === 'gold' || !canTakeGem(color)"
+            @click="takeGem(color)"
           >
             <span>{{ color }}</span>
             <strong>{{ bankGems[color] || 0 }}</strong>
           </button>
         </div>
-        <div class="take-two">
-          <el-button
-            v-for="color in GEM_COLORS"
-            :key="color"
-            size="small"
-            :disabled="!myTurn || mustDiscard || bankGems[color] < 4"
-            @click="takeTwo(color)"
-          >
-            Take 2 {{ color }}
-          </el-button>
-        </div>
+        <p class="muted">Click a gem pile to take 1 gem. Each click sends a Take Gem action immediately.</p>
       </section>
 
       <section v-if="mustDiscard" class="panel discard-panel">
@@ -299,7 +285,7 @@ function discardSelectedGems() {
         </div>
       </section>
 
-      <section class="market panel">
+      <section class="market panel" :class="{ 'disabled-panel': hasTakenGemThisTurn }">
         <div class="section-head">
           <h3>Market</h3>
         </div>
@@ -308,7 +294,7 @@ function discardSelectedGems() {
             <strong>Tier {{ tier }}</strong>
             <el-button
               size="small"
-              :disabled="!myTurn || mustDiscard || !deckCount(tier) || (me?.reservedCards?.length || 0) >= 3"
+              :disabled="!myTurn || mustDiscard || hasTakenGemThisTurn || !deckCount(tier) || (me?.reservedCards?.length || 0) >= 3"
               @click="reserveDeckCard(tier)"
             >
               Reserve deck ({{ deckCount(tier) }})
@@ -325,10 +311,10 @@ function discardSelectedGems() {
               </div>
             </div>
             <footer>
-              <el-button size="small" type="primary" :disabled="!myTurn || mustDiscard || !canBuy(card)" @click="buyMarketCard(tier, card)">
+              <el-button size="small" type="primary" :disabled="!myTurn || mustDiscard || hasTakenGemThisTurn || !canBuy(card)" @click="buyMarketCard(tier, card)">
                 Buy
               </el-button>
-              <el-button size="small" :disabled="!myTurn || mustDiscard || (me?.reservedCards?.length || 0) >= 3" @click="reserveMarketCard(tier, card)">
+              <el-button size="small" :disabled="!myTurn || mustDiscard || hasTakenGemThisTurn || (me?.reservedCards?.length || 0) >= 3" @click="reserveMarketCard(tier, card)">
                 Reserve
               </el-button>
             </footer>
@@ -373,7 +359,7 @@ function discardSelectedGems() {
         </article>
       </section>
 
-      <section class="panel reserved">
+      <section class="panel reserved" :class="{ 'disabled-panel': hasTakenGemThisTurn }">
         <h3>Your Reserved Cards</h3>
         <article v-for="card in me?.reservedCards || []" :key="card.id" class="dev-card compact" :class="gemClass(card.color)">
           <header>
@@ -385,7 +371,7 @@ function discardSelectedGems() {
               <span>{{ card.cost[color] }}</span>
             </div>
           </div>
-          <el-button size="small" type="primary" :disabled="!myTurn || mustDiscard || !canBuy(card)" @click="buyReservedCard(card)">
+          <el-button size="small" type="primary" :disabled="!myTurn || mustDiscard || hasTakenGemThisTurn || !canBuy(card)" @click="buyReservedCard(card)">
             Buy
           </el-button>
         </article>
@@ -450,12 +436,11 @@ function discardSelectedGems() {
 }
 
 .gem-row,
-.take-two,
 .mini-gems,
 .discounts {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 10px;
 }
 
 .gem-token {
@@ -467,14 +452,28 @@ function discardSelectedGems() {
   display: grid;
   gap: 4px;
   cursor: pointer;
+  transition: transform 120ms ease, box-shadow 120ms ease, opacity 160ms ease;
+}
+
+.gem-token:hover:not(:disabled) {
+  transform: translateY(-1px) scale(1.03);
+  box-shadow:
+    0 0 0 3px rgba(37, 99, 235, 0.18),
+    0 0 0 6px rgba(56, 189, 248, 0.10),
+    0 14px 24px rgba(148, 163, 184, 0.24);
+  background-image:
+    radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.35), transparent 22%),
+    linear-gradient(135deg, rgba(147, 197, 253, 0.18), rgba(244, 114, 182, 0.16));
+}
+
+.gem-token:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+  filter: saturate(0.7);
 }
 
 .gem-token strong {
   font-size: 1.2rem;
-}
-
-.gem-token.selected {
-  outline: 3px solid #2563eb;
 }
 
 .tier-row {
@@ -557,6 +556,21 @@ function discardSelectedGems() {
   gap: 8px;
 }
 
+.disabled-panel {
+  position: relative;
+  overflow: hidden;
+  opacity: 0.72;
+  pointer-events: none;
+}
+
+.disabled-panel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(148, 163, 184, 0.08), rgba(226, 232, 240, 0.18));
+  border-radius: 8px;
+}
+
 .player-card.active {
   border-color: #2563eb;
   box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
@@ -569,7 +583,7 @@ function discardSelectedGems() {
   width: 1.9em;
   height: 1.9em;
   border-radius: 50%;
-  border: 1px solid #111827;
+  border: 1px solid lightgray;
   box-sizing: border-box;
   font-size: 0.82rem;
   font-weight: 600;
