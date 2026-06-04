@@ -98,23 +98,6 @@ function gemClass(color) {
   return `gem-${color}`;
 }
 
-function gemTint(color) {
-  const palette = {
-    white: "rgba(248, 250, 252, 0.55)",
-    blue: "rgba(37, 99, 235, 0.50)",
-    green: "rgba(22, 163, 74, 0.50)",
-    red: "rgba(220, 38, 38, 0.50)",
-    black: "rgba(15, 23, 42, 0.55)",
-    gold: "rgba(245, 158, 11, 0.50)",
-  };
-
-  return palette[color] || "rgba(148, 163, 184, 0.35)";
-}
-
-function cardCostSummary(card) {
-  return GEM_COLORS.map((color) => Number(card?.cost?.[color] || 0)).join(", ");
-}
-
 function resetDiscardGems() {
   for (const color of ALL_GEMS) {
     discardGems[color] = 0;
@@ -249,28 +232,28 @@ function discardSelectedGems() {
 </script>
 
 <template>
-  <section class="gem-layout">
-    <div class="game-column">
-      <header class="game-head panel">
+  <section class="gem-merchant-board grid gap-4">
+    <div class="grid content-start gap-3">
+      <header class="panel flex items-center justify-between gap-3">
         <div>
           <p class="eyebrow">Gem Merchant</p>
           <h2>{{ myTurn ? "Your turn" : `${displayName(currentPlayer?.userId)}'s turn` }}</h2>
         </div>
-        <div class="head-tags">
+        <div class="flex flex-wrap items-center justify-end gap-2">
           <el-tag :type="myTurn ? 'success' : 'info'">{{ myTurn ? "Act now" : "Waiting" }}</el-tag>
           <el-tag v-if="gameState?.finalRoundTriggered" type="danger">Final Round</el-tag>
           <el-tag v-if="mustDiscard" type="warning">Discard {{ pendingDiscard.needDiscardCount }}</el-tag>
         </div>
       </header>
 
-      <section class="bank panel">
-        <div class="section-head">
+      <section class="panel grid gap-3">
+        <div class="flex items-center justify-between gap-3">
           <h3>Bank</h3>
           <el-button size="small" type="primary" :disabled="!myTurn || mustDiscard" @click="endTurn">
             Turn End
           </el-button>
         </div>
-        <div class="gem-row">
+        <div class="flex flex-wrap gap-2.5">
           <button
             v-for="color in ALL_GEMS"
             :key="color"
@@ -286,8 +269,8 @@ function discardSelectedGems() {
         </div>
       </section>
 
-      <section v-if="mustDiscard" class="panel discard-panel">
-        <div class="section-head">
+      <section v-if="mustDiscard" class="panel grid gap-3 discard-panel">
+        <div class="flex items-center justify-between gap-3">
           <h3>Discard Gems</h3>
           <el-button
             type="warning"
@@ -297,20 +280,25 @@ function discardSelectedGems() {
             Discard
           </el-button>
         </div>
-        <div class="discard-grid">
+        <div class="discard-grid grid gap-3">
           <label v-for="color in ALL_GEMS" :key="color">
             <span>{{ color }} ({{ me?.gems?.[color] || 0 }})</span>
-            <el-input-number v-model="discardGems[color]" :min="0" :max="me?.gems?.[color] || 0" size="small" />
+            <el-input-number
+              v-model="discardGems[color]"
+              :min="0"
+              :max="me?.gems?.[color] || 0"
+              size="small"
+            />
           </label>
         </div>
       </section>
 
-      <section class="market panel" :class="{ 'disabled-panel': hasTakenGemThisTurn }">
-        <div class="section-head">
+      <section class="panel grid gap-3" :class="{ 'disabled-panel': hasTakenGemThisTurn }">
+        <div class="flex items-center justify-between gap-3">
           <h3>Market</h3>
         </div>
-        <div v-for="tier in [3, 2, 1]" :key="tier" class="tier-row">
-          <div class="tier-label">
+        <div v-for="tier in [3, 2, 1]" :key="tier" class="market-tier-row grid gap-3">
+          <div class="market-tier-tools grid content-start gap-2 text-slate-700">
             <strong>Tier {{ tier }}</strong>
             <el-popover
               placement="bottom-start"
@@ -327,8 +315,15 @@ function discardSelectedGems() {
                 <p v-if="!deckCards(tier).length" class="muted">No cards left in this deck.</p>
                 <article v-for="card in deckCards(tier)" :key="card.id" class="deck-popover-card">
                   <div class="deck-card-line">
-                    <span class="deck-vp-badge" :style="{ backgroundColor: gemTint(card.color) }">{{ card.points }} VP</span>
-                    <span v-for="color in GEM_COLORS" :key="color" class="deck-cost-chip gem-count" :class="gemClass(color)">
+                    <span class="deck-vp-badge" :class="gemClass(card.color)">
+                      {{ card.points }} VP
+                    </span>
+                    <span
+                      v-for="color in GEM_COLORS"
+                      :key="color"
+                      class="deck-cost-chip gem-count"
+                      :class="gemClass(color)"
+                    >
                       {{ card.cost?.[color] || 0 }}
                     </span>
                   </div>
@@ -336,9 +331,15 @@ function discardSelectedGems() {
               </div>
             </el-popover>
             <el-button
-              style="margin-left: 0;"
+              class="market-reserve-button"
               size="small"
-              :disabled="!myTurn || mustDiscard || hasTakenGemThisTurn || !deckCount(tier) || (me?.reservedCards?.length || 0) >= 3"
+              :disabled="
+                !myTurn ||
+                mustDiscard ||
+                hasTakenGemThisTurn ||
+                !deckCount(tier) ||
+                (me?.reservedCards?.length || 0) >= 3
+              "
               @click="reserveDeckCard(tier)"
             >
               Reserve
@@ -354,16 +355,31 @@ function discardSelectedGems() {
               <strong>{{ card.points }} VP</strong>
               <span>{{ card.color }}</span>
             </header>
-            <div class="cost-list">
-              <div v-for="color in GEM_COLORS" :key="color" class="gem-count" :class="gemClass(color)" v-show="card.cost[color]">
+            <div class="card-cost-list flex flex-wrap gap-1.5">
+              <div
+                v-for="color in GEM_COLORS"
+                v-show="card.cost[color]"
+                :key="color"
+                class="gem-count"
+                :class="gemClass(color)"
+              >
                 <span>{{ card.cost[color] }}</span>
               </div>
             </div>
             <footer>
-              <el-button size="small" type="primary" :disabled="!myTurn || mustDiscard || hasTakenGemThisTurn || !canBuy(card)" @click="buyMarketCard(tier, card)">
+              <el-button
+                size="small"
+                type="primary"
+                :disabled="!myTurn || mustDiscard || hasTakenGemThisTurn || !canBuy(card)"
+                @click="buyMarketCard(tier, card)"
+              >
                 Buy
               </el-button>
-              <el-button size="small" :disabled="!myTurn || mustDiscard || hasTakenGemThisTurn || (me?.reservedCards?.length || 0) >= 3" @click="reserveMarketCard(tier, card)">
+              <el-button
+                size="small"
+                :disabled="!myTurn || mustDiscard || hasTakenGemThisTurn || (me?.reservedCards?.length || 0) >= 3"
+                @click="reserveMarketCard(tier, card)"
+              >
                 Reserve
               </el-button>
             </footer>
@@ -371,14 +387,20 @@ function discardSelectedGems() {
         </div>
       </section>
 
-      <section class="nobles panel">
-        <div class="section-head">
+      <section class="panel grid gap-3">
+        <div class="flex items-center justify-between gap-3">
           <h3>Nobles</h3>
         </div>
         <article v-for="noble in gameState?.nobles || []" :key="noble.id" class="noble-card">
           <strong>{{ noble.points }} VP</strong>
-          <div class="noble-req">
-            <div v-for="color in GEM_COLORS" :key="color" class="gem-count" :class="gemClass(color)" v-show="noble.requirement[color]">
+          <div class="noble-requirements flex flex-wrap gap-1.5">
+            <div
+              v-for="color in GEM_COLORS"
+              v-show="noble.requirement[color]"
+              :key="color"
+              class="gem-count"
+              :class="gemClass(color)"
+            >
               <span>{{ noble.requirement[color] }}</span>
             </div>
           </div>
@@ -386,31 +408,39 @@ function discardSelectedGems() {
       </section>
     </div>
 
-    <aside class="side-column">
-      <section class="panel players">
+    <aside class="grid content-start gap-3">
+      <section class="panel grid gap-2">
         <h3>Players</h3>
-        <article v-for="player in players" :key="player.userId" class="player-card" :class="{ active: player.userId === currentPlayer?.userId }">
+        <article
+          v-for="player in players"
+          :key="player.userId"
+          class="player-card"
+          :class="{ active: player.userId === currentPlayer?.userId }"
+        >
           <header>
             <strong>{{ displayName(player.userId) }}</strong>
             <el-tag size="small">{{ player.score }} VP</el-tag>
           </header>
-          <div class="mini-gems">
+          <div class="flex flex-wrap gap-2.5">
             <div v-for="color in ALL_GEMS" :key="color" class="gem-count" :class="gemClass(color)">
               <span>{{ player.gems[color] || 0 }}</span>
             </div>
           </div>
-          <div class="discounts">
+          <div class="player-discounts flex flex-wrap gap-2.5 rounded-md bg-slate-100/80 p-1.5">
             <div v-for="color in GEM_COLORS" :key="color" class="gem-count" :class="gemClass(color)">
               <span>{{ cardCount(player, color) }}</span>
             </div>
           </div>
-          <p class="muted">Reserved: {{ player.reservedCount ?? player.reservedCards?.length ?? 0 }} · Nobles: {{ player.nobles?.length || 0 }}</p>
+          <p class="muted">
+            Reserved: {{ player.reservedCount ?? player.reservedCards?.length ?? 0 }} / Nobles:
+            {{ player.nobles?.length || 0 }}
+          </p>
         </article>
       </section>
 
-      <section class="panel reserved" :class="{ 'disabled-panel': hasTakenGemThisTurn }">
+      <section class="panel grid gap-3" :class="{ 'disabled-panel': hasTakenGemThisTurn }">
         <h3>Your Reserved Cards</h3>
-        <div class="reserved-cards">
+        <div class="grid gap-3 md:grid-cols-3">
           <article
             v-for="card in me?.reservedCards || []"
             :key="card.id"
@@ -421,12 +451,23 @@ function discardSelectedGems() {
               <strong>{{ card.points }} VP</strong>
               <span>{{ card.color }}</span>
             </header>
-            <div class="cost-list">
-              <div v-for="color in GEM_COLORS" :key="color" class="gem-count" :class="gemClass(color)" v-show="card.cost[color]">
+            <div class="card-cost-list flex flex-wrap gap-1.5">
+              <div
+                v-for="color in GEM_COLORS"
+                v-show="card.cost[color]"
+                :key="color"
+                class="gem-count"
+                :class="gemClass(color)"
+              >
                 <span>{{ card.cost[color] }}</span>
               </div>
             </div>
-            <el-button size="small" type="primary" :disabled="!myTurn || mustDiscard || hasTakenGemThisTurn || !canBuy(card)" @click="buyReservedCard(card)">
+            <el-button
+              size="small"
+              type="primary"
+              :disabled="!myTurn || mustDiscard || hasTakenGemThisTurn || !canBuy(card)"
+              @click="buyReservedCard(card)"
+            >
               Buy
             </el-button>
           </article>
@@ -447,17 +488,8 @@ function discardSelectedGems() {
 </template>
 
 <style scoped>
-.gem-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.65fr);
-  gap: 16px;
-}
-
-.game-column,
-.side-column {
-  display: grid;
-  gap: 12px;
-  align-content: start;
+.gem-merchant-board {
+  grid-template-columns: 1fr;
 }
 
 .panel {
@@ -468,35 +500,28 @@ function discardSelectedGems() {
   padding: 14px;
 }
 
-.game-head,
-.section-head,
-.dev-card header,
-.player-card header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-}
-
 .eyebrow,
 .muted {
   color: #64748b;
   font-size: 0.86rem;
 }
 
-.head-tags {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  justify-content: end;
+.discard-grid {
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
 }
 
-.gem-row,
-.mini-gems,
-.discounts {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
+.market-tier-row {
+  grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+  margin-top: 8px;
+}
+
+.market-reserve-button {
+  margin-left: 0;
+}
+
+.discard-grid label {
+  display: grid;
+  gap: 4px;
 }
 
 .gem-token {
@@ -532,21 +557,6 @@ function discardSelectedGems() {
   font-size: 1.2rem;
 }
 
-.tier-row {
-  display: grid;
-  grid-template-columns: 140px repeat(4, minmax(130px, 1fr));
-  gap: 10px;
-  margin-top: 10px;
-  align-items: stretch;
-}
-
-.tier-label {
-  display: grid;
-  gap: 8px;
-  align-content: start;
-  color: #334155;
-}
-
 .dev-card,
 .noble-card,
 .player-card {
@@ -556,16 +566,47 @@ function discardSelectedGems() {
   background: #f8fafc;
 }
 
-.player-card {
-  display: flex;
-  flex-direction: column;
+.dev-card {
+  display: grid;
+  min-height: 132px;
+  gap: 8px;
+}
+
+.noble-card {
+  display: grid;
+  min-width: 150px;
   gap: 4px;
 }
 
-.dev-card {
-  min-height: 132px;
-  display: grid;
+.player-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.dev-card header,
+.player-card header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.dev-card footer {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
+}
+
+.card-cost-list .gem-count,
+.noble-requirements .gem-count {
+  font-size: 0.9rem;
+}
+
+.player-discounts .gem-count {
+  border-radius: 15%;
+  font-size: 0.86rem;
 }
 
 .unaffordable-card {
@@ -586,39 +627,6 @@ function discardSelectedGems() {
   pointer-events: none;
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), transparent 35%);
 
-}
-
-.cost-list {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-.noble-req {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.nobles {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.nobles .section-head {
-  width: 100%;
-}
-
-.noble-card {
-  min-width: 150px;
-  display: grid;
-  gap: 4px;
-}
-
-.players {
-  display: grid;
-  gap: 8px;
 }
 
 .disabled-panel {
@@ -657,31 +665,6 @@ function discardSelectedGems() {
 
 .gem-count span {
   display: block;
-}
-
-.mini-gems .gem-count {
-  font-size: 0.86rem;
-}
-
-.discounts .gem-count {
-  font-size: 0.86rem;
-  border-radius: 15%;
-}
-
-.cost-list .gem-count,
-.noble-req .gem-count {
-  font-size: 0.9rem;
-}
-
-.discard-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 10px;
-}
-
-.discard-grid label {
-  display: grid;
-  gap: 4px;
 }
 
 .gem-white {
@@ -764,6 +747,30 @@ function discardSelectedGems() {
   border: 1px solid rgba(255, 255, 255, 0.7);
 }
 
+.deck-vp-badge.gem-white {
+  background-color: rgba(248, 250, 252, 0.55);
+}
+
+.deck-vp-badge.gem-blue {
+  background-color: rgba(37, 99, 235, 0.5);
+}
+
+.deck-vp-badge.gem-green {
+  background-color: rgba(22, 163, 74, 0.5);
+}
+
+.deck-vp-badge.gem-red {
+  background-color: rgba(220, 38, 38, 0.5);
+}
+
+.deck-vp-badge.gem-black {
+  background-color: rgba(15, 23, 42, 0.55);
+}
+
+.deck-vp-badge.gem-gold {
+  background-color: rgba(245, 158, 11, 0.5);
+}
+
 .deck-card-color,
 .deck-card-id {
   color: #475569;
@@ -778,19 +785,16 @@ function discardSelectedGems() {
   border: 1px solid rgba(255, 255, 255, 0.6);
 }
 
-.reserved-cards {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-}
-
-@media (max-width: 1180px) {
-  .gem-layout {
-    grid-template-columns: 1fr;
-  }
-
-  .tier-row {
-    grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+@media (min-width: 1024px) {
+  .gem-merchant-board {
+    grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.65fr);
   }
 }
+
+@media (min-width: 1280px) {
+  .market-tier-row {
+    grid-template-columns: 140px repeat(4, minmax(130px, 1fr));
+  }
+}
+
 </style>
