@@ -574,10 +574,10 @@ export function applyAction(gameStateInput, userId, action) {
 export function getPlayerView(gameStateInput, userId) {
   const gameState = structuredClone(gameStateInput);
 
-  gameState.deckCounts = {
-    tier1: gameStateInput.decks.tier1.length,
-    tier2: gameStateInput.decks.tier2.length,
-    tier3: gameStateInput.decks.tier3.length,
+  gameState.deckSorted = {
+    tier1: [...gameStateInput.decks.tier1].sort((a, b) => a.id.localeCompare(b.id)),
+    tier2: [...gameStateInput.decks.tier2].sort((a, b) => a.id.localeCompare(b.id)),
+    tier3: [...gameStateInput.decks.tier3].sort((a, b) => a.id.localeCompare(b.id)),
   };
   delete gameState.decks;
 

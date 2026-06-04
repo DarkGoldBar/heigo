@@ -87,7 +87,11 @@ function marketCards(tier) {
 }
 
 function deckCount(tier) {
-  return props.gameState?.deckCounts?.[`tier${tier}`] || 0;
+  return props.gameState?.deckSorted?.[`tier${tier}`]?.length || 0;
+}
+
+function deckCards(tier) {
+  return props.gameState?.deckSorted?.[`tier${tier}`] || [];
 }
 
 function gemClass(color) {
@@ -292,12 +296,33 @@ function discardSelectedGems() {
         <div v-for="tier in [3, 2, 1]" :key="tier" class="tier-row">
           <div class="tier-label">
             <strong>Tier {{ tier }}</strong>
+            <el-popover
+              placement="bottom-start"
+              trigger="click"
+              width="280"
+              :disabled="deckCount(tier) === 0"
+            >
+              <template #reference>
+                <el-button size="small" type="info" plain :disabled="deckCount(tier) === 0">
+                  Deck ({{ deckCount(tier) }})
+                </el-button>
+              </template>
+              <div class="deck-popover-list">
+                <p v-if="!deckCards(tier).length" class="muted">No cards left in this deck.</p>
+                <article v-for="card in deckCards(tier)" :key="card.id" class="deck-popover-card">
+                  <strong>{{ card.points }} VP</strong>
+                  <span>{{ card.color }}</span>
+                  <small>{{ card.id }}</small>
+                </article>
+              </div>
+            </el-popover>
             <el-button
+              style="margin-left: 0;"
               size="small"
               :disabled="!myTurn || mustDiscard || hasTakenGemThisTurn || !deckCount(tier) || (me?.reservedCards?.length || 0) >= 3"
               @click="reserveDeckCard(tier)"
             >
-              Reserve deck ({{ deckCount(tier) }})
+              Reserve
             </el-button>
           </div>
           <article v-for="card in marketCards(tier)" :key="card.id" class="dev-card" :class="gemClass(card.color)">
@@ -361,20 +386,22 @@ function discardSelectedGems() {
 
       <section class="panel reserved" :class="{ 'disabled-panel': hasTakenGemThisTurn }">
         <h3>Your Reserved Cards</h3>
-        <article v-for="card in me?.reservedCards || []" :key="card.id" class="dev-card compact" :class="gemClass(card.color)">
-          <header>
-            <strong>{{ card.points }} VP</strong>
-            <span>{{ card.color }}</span>
-          </header>
-          <div class="cost-list">
-            <div v-for="color in GEM_COLORS" :key="color" class="gem-count" :class="gemClass(color)" v-show="card.cost[color]">
-              <span>{{ card.cost[color] }}</span>
+        <div class="reserved-cards">
+          <article v-for="card in me?.reservedCards || []" :key="card.id" class="dev-card compact" :class="gemClass(card.color)">
+            <header>
+              <strong>{{ card.points }} VP</strong>
+              <span>{{ card.color }}</span>
+            </header>
+            <div class="cost-list">
+              <div v-for="color in GEM_COLORS" :key="color" class="gem-count" :class="gemClass(color)" v-show="card.cost[color]">
+                <span>{{ card.cost[color] }}</span>
+              </div>
             </div>
-          </div>
-          <el-button size="small" type="primary" :disabled="!myTurn || mustDiscard || hasTakenGemThisTurn || !canBuy(card)" @click="buyReservedCard(card)">
-            Buy
-          </el-button>
-        </article>
+            <el-button size="small" type="primary" :disabled="!myTurn || mustDiscard || hasTakenGemThisTurn || !canBuy(card)" @click="buyReservedCard(card)">
+              Buy
+            </el-button>
+          </article>
+        </div>
         <p v-if="!me?.reservedCards?.length" class="muted">No reserved cards.</p>
       </section>
 
@@ -651,6 +678,12 @@ function discardSelectedGems() {
 .gem-gold {
   background: #f59e0b;
   color: #1f2937;
+}
+
+.reserved-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
 }
 
 @media (max-width: 1180px) {
