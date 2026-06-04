@@ -320,9 +320,9 @@ function discardSelectedGems() {
               <span>{{ card.color }}</span>
             </header>
             <div class="cost-list">
-              <span v-for="color in GEM_COLORS" :key="color" v-show="card.cost[color]">
-                {{ color[0].toUpperCase() }}{{ card.cost[color] }}
-              </span>
+              <div v-for="color in GEM_COLORS" :key="color" class="gem-count" :class="gemClass(color)" v-show="card.cost[color]">
+                <span>{{ card.cost[color] }}</span>
+              </div>
             </div>
             <footer>
               <el-button size="small" type="primary" :disabled="!myTurn || mustDiscard || !canBuy(card)" @click="buyMarketCard(tier, card)">
@@ -342,9 +342,11 @@ function discardSelectedGems() {
         </div>
         <article v-for="noble in gameState?.nobles || []" :key="noble.id" class="noble-card">
           <strong>{{ noble.points }} VP</strong>
-          <span v-for="color in GEM_COLORS" :key="color" v-show="noble.requirement[color]">
-            {{ color }} {{ noble.requirement[color] }}
-          </span>
+          <div class="noble-req">
+            <div v-for="color in GEM_COLORS" :key="color" class="gem-count" :class="gemClass(color)" v-show="noble.requirement[color]">
+              <span>{{ noble.requirement[color] }}</span>
+            </div>
+          </div>
         </article>
       </section>
     </div>
@@ -358,10 +360,14 @@ function discardSelectedGems() {
             <el-tag size="small">{{ player.score }} VP</el-tag>
           </header>
           <div class="mini-gems">
-            <span v-for="color in ALL_GEMS" :key="color" :class="gemClass(color)">{{ player.gems[color] || 0 }}</span>
+            <div v-for="color in ALL_GEMS" :key="color" class="gem-count" :class="gemClass(color)">
+              <span>{{ player.gems[color] || 0 }}</span>
+            </div>
           </div>
           <div class="discounts">
-            <span v-for="color in GEM_COLORS" :key="color" :class="gemClass(color)">{{ cardCount(player, color) }}</span>
+            <div v-for="color in GEM_COLORS" :key="color" class="gem-count" :class="gemClass(color)">
+              <span>{{ cardCount(player, color) }}</span>
+            </div>
           </div>
           <p class="muted">Reserved: {{ player.reservedCount ?? player.reservedCards?.length ?? 0 }} · Nobles: {{ player.nobles?.length || 0 }}</p>
         </article>
@@ -375,9 +381,9 @@ function discardSelectedGems() {
             <span>{{ card.color }}</span>
           </header>
           <div class="cost-list">
-            <span v-for="color in GEM_COLORS" :key="color" v-show="card.cost[color]">
-              {{ color[0].toUpperCase() }}{{ card.cost[color] }}
-            </span>
+            <div v-for="color in GEM_COLORS" :key="color" class="gem-count" :class="gemClass(color)" v-show="card.cost[color]">
+              <span>{{ card.cost[color] }}</span>
+            </div>
           </div>
           <el-button size="small" type="primary" :disabled="!myTurn || mustDiscard || !canBuy(card)" @click="buyReservedCard(card)">
             Buy
@@ -453,9 +459,10 @@ function discardSelectedGems() {
 }
 
 .gem-token {
+  aspect-ratio: 1;
   min-width: 78px;
   border: 1px solid #cbd5e1;
-  border-radius: 100px;
+  border-radius: 50%;
   padding: 8px;
   display: grid;
   gap: 4px;
@@ -519,15 +526,14 @@ function discardSelectedGems() {
 
 .cost-list {
   display: flex;
-  gap: 5px;
+  gap: 6px;
   flex-wrap: wrap;
 }
 
-.cost-list span {
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.78);
-  padding: 2px 7px;
-  font-size: 0.82rem;
+.noble-req {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
 .nobles {
@@ -556,13 +562,36 @@ function discardSelectedGems() {
   box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
 }
 
-.mini-gems span,
-.discounts span {
-  min-width: 24px;
-  border-radius: 999px;
-  padding: 2px 7px;
-  text-align: center;
+.gem-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.9em;
+  height: 1.9em;
+  border-radius: 50%;
+  border: 1px solid #111827;
+  box-sizing: border-box;
   font-size: 0.82rem;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.gem-count span {
+  display: block;
+}
+
+.mini-gems .gem-count {
+  font-size: 0.86rem;
+}
+
+.discounts .gem-count {
+  font-size: 0.86rem;
+  border-radius: 15%;
+}
+
+.cost-list .gem-count,
+.noble-req .gem-count {
+  font-size: 0.9rem;
 }
 
 .discard-grid {
@@ -577,7 +606,6 @@ function discardSelectedGems() {
 }
 
 .gem-white {
-  border: #334155 1px solid;
   background: #f8fafc;
   color: #334155;
 }
@@ -600,6 +628,10 @@ function discardSelectedGems() {
 .gem-black {
   background: #1f2937;
   color: #fff;
+}
+
+.gem-count.gem-black {
+  border-color: #fff;
 }
 
 .gem-gold {
