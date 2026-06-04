@@ -284,7 +284,6 @@ function discardSelectedGems() {
             <strong>{{ bankGems[color] || 0 }}</strong>
           </button>
         </div>
-        <p class="muted">Click a gem pile to take 1 gem. Each click sends a Take Gem action immediately.</p>
       </section>
 
       <section v-if="mustDiscard" class="panel discard-panel">
@@ -316,7 +315,7 @@ function discardSelectedGems() {
             <el-popover
               placement="bottom-start"
               trigger="click"
-              width="240"
+              width="15rem"
               :disabled="deckCount(tier) === 0"
             >
               <template #reference>
