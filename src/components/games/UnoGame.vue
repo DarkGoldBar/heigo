@@ -1,6 +1,9 @@
 <script setup>
 import { computed, ref } from "vue";
 import ChatPanel from "../room/ChatPanel.vue";
+import { useI18n } from "../../i18n";
+
+const { t } = useI18n();
 
 const props = defineProps({
   roomState: {
@@ -38,6 +41,7 @@ const currentTurn = computed(() => props.gameState?.currentTurn);
 const users = computed(() => props.roomState.users || []);
 const meTurn = computed(() => currentTurn.value === myId.value);
 const winner = computed(() => props.gameState?.winner || null);
+const winnerName = computed(() => displayName(winner.value));
 
 const opponents = computed(() => {
   return users.value
@@ -105,15 +109,22 @@ function draw() {
   emit("action", { type: "draw" });
 }
 
+function displayName(userId) {
+  if (!userId) {
+    return t("common.unknown");
+  }
+  return users.value.find((entry) => entry.userId === userId)?.username || String(userId).slice(-8);
+}
+
 function cardLabel(card) {
   if (!card) {
     return "-";
   }
   const map = {
-    skip: "Skip",
-    reverse: "Reverse",
+    skip: t("uno.cardsMap.skip"),
+    reverse: t("uno.cardsMap.reverse"),
     draw_two: "+2",
-    wild: "Wild",
+    wild: t("uno.cardsMap.wild"),
     wild_draw_four: "+4",
   };
   return map[card.value] || card.value;
@@ -124,26 +135,26 @@ function cardLabel(card) {
   <section class="uno-layout">
     <div class="table-wrap card">
       <header class="table-head">
-        <h3>UNO Match</h3>
-        <el-tag :type="meTurn ? 'success' : 'info'">{{ meTurn ? "Your turn" : "Waiting" }}</el-tag>
+        <h3>{{ t("uno.title") }}</h3>
+        <el-tag :type="meTurn ? 'success' : 'info'">{{ meTurn ? t("common.yourTurn") : t("common.waiting") }}</el-tag>
       </header>
 
       <div class="table-center">
         <div class="pile">
-          <p class="pile-label">Discard Top</p>
+          <p class="pile-label">{{ t("uno.discardTop") }}</p>
           <div class="card-face" :class="`color-${topCard?.color || 'wild'}`">
             {{ cardLabel(topCard) }}
           </div>
         </div>
 
         <div class="status-block">
-          <p>Current Color</p>
+          <p>{{ t("uno.currentColor") }}</p>
           <span class="color-dot" :class="`dot-${currentColor}`"></span>
-          <p>Deck: {{ gameState?.deckCount || 0 }}</p>
-          <p>Pending Draw: {{ gameState?.pendingDraw || 0 }}</p>
+          <p>{{ t("uno.deck", { count: gameState?.deckCount || 0 }) }}</p>
+          <p>{{ t("uno.pendingDraw", { count: gameState?.pendingDraw || 0 }) }}</p>
         </div>
 
-        <el-button type="warning" :disabled="!meTurn" @click="draw">Draw Card</el-button>
+        <el-button type="warning" :disabled="!meTurn" @click="draw">{{ t("uno.drawCard") }}</el-button>
       </div>
 
       <div class="opponents">
@@ -157,8 +168,8 @@ function cardLabel(card) {
             {{ enemy.avatar?.emoji || "🎮" }}
           </span>
           <div>
-            <p>{{ enemy.username }}</p>
-            <p class="hand-count">Cards: {{ enemy.handCount }}</p>
+            <p>{{ displayName(enemy.userId) }}</p>
+            <p class="hand-count">{{ t("uno.cards", { count: enemy.handCount }) }}</p>
           </div>
         </article>
       </div>
@@ -181,19 +192,19 @@ function cardLabel(card) {
       <ChatPanel :messages="messages" :connected="connected" @send="(text) => emit('chat', text)" />
     </div>
 
-    <el-dialog v-model="chooseColorDialog" title="Pick Color" width="360px">
+    <el-dialog v-model="chooseColorDialog" :title="t('uno.pickColor')" width="360px">
       <div class="wild-colors">
-        <button class="color-btn red" @click="chooseColor('red')">Red</button>
-        <button class="color-btn yellow" @click="chooseColor('yellow')">Yellow</button>
-        <button class="color-btn green" @click="chooseColor('green')">Green</button>
-        <button class="color-btn blue" @click="chooseColor('blue')">Blue</button>
+        <button class="color-btn red" @click="chooseColor('red')">{{ t("uno.colorNames.red") }}</button>
+        <button class="color-btn yellow" @click="chooseColor('yellow')">{{ t("uno.colorNames.yellow") }}</button>
+        <button class="color-btn green" @click="chooseColor('green')">{{ t("uno.colorNames.green") }}</button>
+        <button class="color-btn blue" @click="chooseColor('blue')">{{ t("uno.colorNames.blue") }}</button>
       </div>
     </el-dialog>
 
-    <el-dialog :model-value="Boolean(winner)" title="Game Ended" width="380px" :show-close="false">
-      <p>The winner is {{ winner }}</p>
+    <el-dialog :model-value="Boolean(winner)" :title="t('common.gameEnded')" width="380px" :show-close="false">
+      <p>{{ t("uno.winner", { name: winnerName }) }}</p>
       <template #footer>
-        <el-button type="primary" @click="emit('back-to-lobby')">Back to Lobby</el-button>
+        <el-button type="primary" @click="emit('back-to-lobby')">{{ t("common.backToLobby") }}</el-button>
       </template>
     </el-dialog>
   </section>

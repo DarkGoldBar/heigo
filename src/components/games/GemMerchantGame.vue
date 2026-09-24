@@ -1,6 +1,9 @@
 <script setup>
 import { computed, reactive } from "vue";
 import ChatPanel from "../room/ChatPanel.vue";
+import { useI18n } from "../../i18n";
+
+const { t } = useI18n();
 
 const GEM_COLORS = ["white", "blue", "green", "red", "black"];
 const ALL_GEMS = [...GEM_COLORS, "gold"];
@@ -61,7 +64,7 @@ const winnerNames = computed(() => {
 
 function shortUserId(userId) {
   if (!userId) {
-    return "unknown";
+    return t("common.unknown");
   }
   return String(userId).slice(-8);
 }
@@ -236,21 +239,21 @@ function discardSelectedGems() {
     <div class="grid content-start gap-3">
       <header class="panel flex items-center justify-between gap-3">
         <div>
-          <p class="eyebrow">Gem Merchant</p>
-          <h2>{{ myTurn ? "Your turn" : `${displayName(currentPlayer?.userId)}'s turn` }}</h2>
+          <p class="eyebrow">{{ t("gem.title") }}</p>
+          <h2>{{ myTurn ? t("common.yourTurn") : t("gem.playerTurn", { name: displayName(currentPlayer?.userId) }) }}</h2>
         </div>
         <div class="flex flex-wrap items-center justify-end gap-2">
-          <el-tag :type="myTurn ? 'success' : 'info'">{{ myTurn ? "Act now" : "Waiting" }}</el-tag>
-          <el-tag v-if="gameState?.finalRoundTriggered" type="danger">Final Round</el-tag>
-          <el-tag v-if="mustDiscard" type="warning">Discard {{ pendingDiscard.needDiscardCount }}</el-tag>
+          <el-tag :type="myTurn ? 'success' : 'info'">{{ myTurn ? t("gem.actNow") : t("common.waiting") }}</el-tag>
+          <el-tag v-if="gameState?.finalRoundTriggered" type="danger">{{ t("gem.finalRound") }}</el-tag>
+          <el-tag v-if="mustDiscard" type="warning">{{ t("gem.discardCount", { count: pendingDiscard.needDiscardCount }) }}</el-tag>
         </div>
       </header>
 
       <section class="panel grid gap-3">
         <div class="flex items-center justify-between gap-3">
-          <h3>Bank</h3>
+          <h3>{{ t("gem.bank") }}</h3>
           <el-button size="small" type="primary" :disabled="!myTurn || mustDiscard" @click="endTurn">
-            Turn End
+            {{ t("gem.turnEnd") }}
           </el-button>
         </div>
         <div class="flex flex-wrap gap-2.5">
@@ -263,7 +266,7 @@ function discardSelectedGems() {
             :disabled="color === 'gold' || !canTakeGem(color)"
             @click="takeGem(color)"
           >
-            <span>{{ color }}</span>
+            <span>{{ t(`colors.${color}`) }}</span>
             <strong>{{ bankGems[color] || 0 }}</strong>
           </button>
         </div>
@@ -271,18 +274,18 @@ function discardSelectedGems() {
 
       <section v-if="mustDiscard" class="panel grid gap-3 discard-panel">
         <div class="flex items-center justify-between gap-3">
-          <h3>Discard Gems</h3>
+          <h3>{{ t("gem.discardGems") }}</h3>
           <el-button
             type="warning"
             :disabled="gemTotal(discardGems) !== pendingDiscard.needDiscardCount"
             @click="discardSelectedGems"
           >
-            Discard
+            {{ t("gem.discard") }}
           </el-button>
         </div>
         <div class="discard-grid grid gap-3">
           <label v-for="color in ALL_GEMS" :key="color">
-            <span>{{ color }} ({{ me?.gems?.[color] || 0 }})</span>
+            <span>{{ t(`colors.${color}`) }} ({{ me?.gems?.[color] || 0 }})</span>
             <el-input-number
               v-model="discardGems[color]"
               :min="0"
@@ -295,11 +298,11 @@ function discardSelectedGems() {
 
       <section class="panel grid gap-3" :class="{ 'disabled-panel': hasTakenGemThisTurn }">
         <div class="flex items-center justify-between gap-3">
-          <h3>Market</h3>
+          <h3>{{ t("gem.market") }}</h3>
         </div>
         <div v-for="tier in [3, 2, 1]" :key="tier" class="market-tier-row grid gap-3">
           <div class="market-tier-tools grid content-start gap-2 text-slate-700">
-            <strong>Tier {{ tier }}</strong>
+            <strong>{{ t("gem.tier", { tier }) }}</strong>
             <el-popover
               placement="bottom-start"
               trigger="click"
@@ -308,15 +311,15 @@ function discardSelectedGems() {
             >
               <template #reference>
                 <el-button size="small" type="info" plain :disabled="deckCount(tier) === 0">
-                  Deck ({{ deckCount(tier) }})
+                  {{ t("gem.deck", { count: deckCount(tier) }) }}
                 </el-button>
               </template>
               <div class="deck-popover-list">
-                <p v-if="!deckCards(tier).length" class="muted">No cards left in this deck.</p>
+                <p v-if="!deckCards(tier).length" class="muted">{{ t("gem.emptyDeck") }}</p>
                 <article v-for="card in deckCards(tier)" :key="card.id" class="deck-popover-card">
                   <div class="deck-card-line">
                     <span class="deck-vp-badge" :class="gemClass(card.color)">
-                      {{ card.points }} VP
+                      {{ t("common.points", { count: card.points }) }}
                     </span>
                     <span
                       v-for="color in GEM_COLORS"
@@ -342,7 +345,7 @@ function discardSelectedGems() {
               "
               @click="reserveDeckCard(tier)"
             >
-              Reserve
+              {{ t("gem.reserve") }}
             </el-button>
           </div>
           <article
@@ -352,8 +355,8 @@ function discardSelectedGems() {
             :class="[gemClass(card.color), { 'unaffordable-card': !canBuy(card) }]"
           >
             <header>
-              <strong>{{ card.points }} VP</strong>
-              <span>{{ card.color }}</span>
+              <strong>{{ t("common.points", { count: card.points }) }}</strong>
+              <span>{{ t(`colors.${card.color}`) }}</span>
             </header>
             <div class="card-cost-list flex flex-wrap gap-1.5">
               <div
@@ -373,14 +376,14 @@ function discardSelectedGems() {
                 :disabled="!myTurn || mustDiscard || hasTakenGemThisTurn || !canBuy(card)"
                 @click="buyMarketCard(tier, card)"
               >
-                Buy
+                {{ t("gem.buy") }}
               </el-button>
               <el-button
                 size="small"
                 :disabled="!myTurn || mustDiscard || hasTakenGemThisTurn || (me?.reservedCards?.length || 0) >= 3"
                 @click="reserveMarketCard(tier, card)"
               >
-                Reserve
+                {{ t("gem.reserve") }}
               </el-button>
             </footer>
           </article>
@@ -389,10 +392,10 @@ function discardSelectedGems() {
 
       <section class="panel grid gap-3">
         <div class="flex items-center justify-between gap-3">
-          <h3>Nobles</h3>
+          <h3>{{ t("gem.nobles") }}</h3>
         </div>
         <article v-for="noble in gameState?.nobles || []" :key="noble.id" class="noble-card">
-          <strong>{{ noble.points }} VP</strong>
+          <strong>{{ t("common.points", { count: noble.points }) }}</strong>
           <div class="noble-requirements flex flex-wrap gap-1.5">
             <div
               v-for="color in GEM_COLORS"
@@ -410,7 +413,7 @@ function discardSelectedGems() {
 
     <aside class="grid content-start gap-3">
       <section class="panel grid gap-2">
-        <h3>Players</h3>
+        <h3>{{ t("common.players") }}</h3>
         <article
           v-for="player in players"
           :key="player.userId"
@@ -419,7 +422,7 @@ function discardSelectedGems() {
         >
           <header>
             <strong>{{ displayName(player.userId) }}</strong>
-            <el-tag size="small">{{ player.score }} VP</el-tag>
+            <el-tag size="small">{{ t("common.points", { count: player.score }) }}</el-tag>
           </header>
           <div class="flex flex-wrap gap-2.5">
             <div v-for="color in ALL_GEMS" :key="color" class="gem-count" :class="gemClass(color)">
@@ -432,14 +435,16 @@ function discardSelectedGems() {
             </div>
           </div>
           <p class="muted">
-            Reserved: {{ player.reservedCount ?? player.reservedCards?.length ?? 0 }} / Nobles:
-            {{ player.nobles?.length || 0 }}
+            {{ t("gem.playerSummary", {
+              reserved: player.reservedCount ?? player.reservedCards?.length ?? 0,
+              nobles: player.nobles?.length || 0,
+            }) }}
           </p>
         </article>
       </section>
 
       <section class="panel grid gap-3" :class="{ 'disabled-panel': hasTakenGemThisTurn }">
-        <h3>Your Reserved Cards</h3>
+        <h3>{{ t("gem.reservedCards") }}</h3>
         <div class="grid gap-3 md:grid-cols-3">
           <article
             v-for="card in me?.reservedCards || []"
@@ -448,8 +453,8 @@ function discardSelectedGems() {
             :class="[gemClass(card.color), { 'unaffordable-card': !canBuy(card) }]"
           >
             <header>
-              <strong>{{ card.points }} VP</strong>
-              <span>{{ card.color }}</span>
+              <strong>{{ t("common.points", { count: card.points }) }}</strong>
+              <span>{{ t(`colors.${card.color}`) }}</span>
             </header>
             <div class="card-cost-list flex flex-wrap gap-1.5">
               <div
@@ -468,20 +473,20 @@ function discardSelectedGems() {
               :disabled="!myTurn || mustDiscard || hasTakenGemThisTurn || !canBuy(card)"
               @click="buyReservedCard(card)"
             >
-              Buy
+              {{ t("gem.buy") }}
             </el-button>
           </article>
         </div>
-        <p v-if="!me?.reservedCards?.length" class="muted">No reserved cards.</p>
+        <p v-if="!me?.reservedCards?.length" class="muted">{{ t("gem.noReservedCards") }}</p>
       </section>
 
       <ChatPanel :messages="messages" :connected="connected" @send="(text) => emit('chat', text)" />
     </aside>
 
-    <el-dialog :model-value="gameState?.status === 'ended'" title="Game Ended" width="380px" :show-close="false">
-      <p>Winner: {{ winnerNames || "None" }}</p>
+    <el-dialog :model-value="gameState?.status === 'ended'" :title="t('common.gameEnded')" width="380px" :show-close="false">
+      <p>{{ t("common.winner", { name: winnerNames || t("common.none") }) }}</p>
       <template #footer>
-        <el-button type="primary" @click="emit('back-to-lobby')">Back to Lobby</el-button>
+        <el-button type="primary" @click="emit('back-to-lobby')">{{ t("common.backToLobby") }}</el-button>
       </template>
     </el-dialog>
   </section>

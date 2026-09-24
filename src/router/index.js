@@ -9,13 +9,13 @@ const router = createRouter({
       path: "/",
       name: "home",
       component: HomeView,
-      meta: { title: "Home" },
+      meta: { titleKey: "routes.home" },
     },
     {
       path: "/room/:roomId",
       name: "room",
       component: RoomView,
-      meta: { title: "Room" },
+      meta: { titleKey: "routes.room" },
     },
   ],
 });

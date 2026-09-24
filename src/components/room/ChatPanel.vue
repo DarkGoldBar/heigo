@@ -1,5 +1,8 @@
 <script setup>
 import { nextTick, ref, watch } from "vue";
+import { useI18n } from "../../i18n";
+
+const { locale, t } = useI18n();
 
 const props = defineProps({
   messages: {
@@ -40,9 +43,9 @@ watch(
 <template>
   <section class="chat-panel card">
     <header class="chat-head">
-      <h3>Room Chat</h3>
+      <h3>{{ t("chat.title") }}</h3>
       <el-tag :type="connected ? 'success' : 'danger'" effect="dark">
-        {{ connected ? "Connected" : "Offline" }}
+        {{ connected ? t("common.connected") : t("common.offline") }}
       </el-tag>
     </header>
 
@@ -55,15 +58,15 @@ watch(
       >
         <div class="chat-meta">
           <span>{{ item.username }}</span>
-          <time>{{ new Date(item.createdAt || Date.now()).toLocaleTimeString() }}</time>
+          <time>{{ new Date(item.createdAt || Date.now()).toLocaleTimeString(locale === "zh" ? "zh-CN" : "en") }}</time>
         </div>
         <p>{{ item.content }}</p>
       </article>
     </el-scrollbar>
 
     <footer class="chat-input-row">
-      <el-input v-model="draft" placeholder="Send a message" @keyup.enter="send" />
-      <el-button type="primary" @click="send">Send</el-button>
+      <el-input v-model="draft" :placeholder="t('chat.placeholder')" @keyup.enter="send" />
+      <el-button type="primary" @click="send">{{ t("chat.send") }}</el-button>
     </footer>
   </section>
 </template>

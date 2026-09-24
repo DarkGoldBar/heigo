@@ -1,8 +1,10 @@
 <script setup>
 import { ref } from "vue";
 import { useRouter } from "vue-router";
+import { useI18n } from "../i18n";
 
 const router = useRouter();
+const { t } = useI18n();
 const roomInput = ref("");
 const creating = ref(false);
 
@@ -15,7 +17,7 @@ async function createRoom(gameType = "uno") {
       body: JSON.stringify({ gameType }),
     });
     if (!res.ok) {
-      throw new Error("Failed to create room");
+      throw new Error(t("home.createRoomError"));
     }
     const data = await res.json();
     router.push(`/room/${data.roomId}`);
@@ -36,35 +38,35 @@ function joinRoom() {
 <template>
   <section class="home-grid">
     <div class="hero panel">
-      <h2>Heigo</h2>
-      <p class="subtitle">A real-time room based game platform. Start with UNO and grow later.</p>
+      <h2>Heigo Duel</h2>
+      <p class="subtitle">{{ t("home.subtitle") }}</p>
 
       <div class="quick-join">
-        <el-input v-model="roomInput" size="large" placeholder="Input Room ID" @keyup.enter="joinRoom" />
-        <el-button type="primary" size="large" @click="joinRoom">Quick Join</el-button>
+        <el-input v-model="roomInput" size="large" :placeholder="t('home.roomIdPlaceholder')" @keyup.enter="joinRoom" />
+        <el-button type="primary" size="large" @click="joinRoom">{{ t("home.quickJoin") }}</el-button>
       </div>
     </div>
 
     <div class="games panel">
       <div class="games-head">
-        <h3>Game Lobby</h3>
-        <p>Available now</p>
+        <h3>{{ t("home.gameLobby") }}</h3>
+        <p>{{ t("home.availableNow") }}</p>
       </div>
 
       <div class="game-card" @click="createRoom('uno')">
         <div>
           <p class="game-label">UNO</p>
-          <p class="game-desc">Classic color matching card game for 2+ players.</p>
+          <p class="game-desc">{{ t("home.unoDescription") }}</p>
         </div>
-        <el-button :loading="creating" type="warning">Create Room</el-button>
+        <el-button :loading="creating" type="warning">{{ t("home.createRoom") }}</el-button>
       </div>
 
       <div class="game-card" @click="createRoom('gem_merchant')">
         <div>
-          <p class="game-label">Gem Merchant</p>
-          <p class="game-desc">Collect gems, buy developments, and race to 15 points.</p>
+          <p class="game-label">{{ t("home.gemMerchant") }}</p>
+          <p class="game-desc">{{ t("home.gemDescription") }}</p>
         </div>
-        <el-button :loading="creating" type="primary">Create Room</el-button>
+        <el-button :loading="creating" type="primary">{{ t("home.createRoom") }}</el-button>
       </div>
     </div>
   </section>

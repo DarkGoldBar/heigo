@@ -1,5 +1,8 @@
 <script setup>
 import { computed } from "vue";
+import { useI18n } from "../../i18n";
+
+const { t } = useI18n();
 
 const props = defineProps({
   roomId: {
@@ -24,11 +27,11 @@ const emit = defineEmits(["ready", "start"]);
 
 const users = computed(() => props.roomState.users || []);
 const gameType = computed(() => props.roomState.roomInfo?.gameType || "uno");
-const gameTitle = computed(() => (gameType.value === "gem_merchant" ? "Gem Merchant Lobby" : "UNO Lobby"));
+const gameTitle = computed(() => t(gameType.value === "gem_merchant" ? "lobby.gemTitle" : "lobby.unoTitle"));
 const rulesText = computed(() => (
   gameType.value === "gem_merchant"
-    ? "Collect gems, buy development cards, reserve cards for gold, and trigger the final round at 15 points."
-    : "Classic UNO. Match by color or value. Wild cards pick color. First empty hand wins."
+    ? t("lobby.gemRules")
+    : t("lobby.unoRules")
 ));
 const onlineUsers = computed(() => users.value.filter((entry) => entry.status === "online"));
 const isHost = computed(() => props.roomState.roomInfo?.hostUserId === props.user.userid);
@@ -43,52 +46,56 @@ const allOnlineReady = computed(() => {
 async function copyInvite() {
   await navigator.clipboard.writeText(window.location.href);
 }
+
+function displayName(entry) {
+  return entry.username || String(entry.userId).slice(-8);
+}
 </script>
 
 <template>
   <section class="room-lobby card">
     <header class="lobby-head">
       <div>
-        <p class="eyebrow">Room</p>
+        <p class="eyebrow">{{ t("lobby.room") }}</p>
         <h2>{{ gameTitle }}</h2>
-        <p class="room-id">ID: {{ roomId }}</p>
+        <p class="room-id">{{ t("lobby.roomId", { id: roomId }) }}</p>
       </div>
-      <el-tag :type="connected ? 'success' : 'danger'">{{ connected ? "Live" : "Offline" }}</el-tag>
+      <el-tag :type="connected ? 'success' : 'danger'">{{ connected ? t("common.live") : t("common.offline") }}</el-tag>
     </header>
 
     <div class="rules card-lite">
-      <h3>Rules</h3>
+      <h3>{{ t("lobby.rules") }}</h3>
       <p>{{ rulesText }}</p>
     </div>
 
     <div class="seat-list card-lite">
-      <h3>Players</h3>
+      <h3>{{ t("common.players") }}</h3>
       <ul>
         <li v-for="entry in users" :key="entry.userId" class="seat-item">
           <span class="avatar" :style="{ backgroundColor: entry.avatar?.color || '#7c8ea3' }">
             {{ entry.avatar?.emoji || "🎮" }}
           </span>
-          <span class="name">{{ entry.username }}</span>
+          <span class="name">{{ displayName(entry) }}</span>
           <el-tag size="small" :type="entry.status === 'online' ? 'success' : 'info'">
-            {{ entry.status }}
+            {{ t(`common.${entry.status === "online" ? "online" : "offline"}`) }}
           </el-tag>
           <el-tag size="small" :type="entry.ready ? 'warning' : 'info'">
-            {{ entry.ready ? "Ready" : "Not ready" }}
+            {{ entry.ready ? t("common.ready") : t("common.notReady") }}
           </el-tag>
-          <el-tag v-if="entry.userId === roomState.roomInfo?.hostUserId" size="small" type="danger">Host</el-tag>
+          <el-tag v-if="entry.userId === roomState.roomInfo?.hostUserId" size="small" type="danger">{{ t("common.host") }}</el-tag>
         </li>
       </ul>
     </div>
 
     <footer class="lobby-actions">
-      <el-button @click="copyInvite">Copy Invite Link</el-button>
+      <el-button @click="copyInvite">{{ t("lobby.copyInvite") }}</el-button>
       <el-button
         v-if="!me?.ready"
         type="primary"
         :disabled="!connected"
         @click="emit('ready')"
       >
-        Ready
+        {{ t("common.ready") }}
       </el-button>
       <el-button
         v-if="isHost"
@@ -96,7 +103,7 @@ async function copyInvite() {
         :disabled="!allOnlineReady || onlineUsers.length < 2 || !connected"
         @click="emit('start')"
       >
-        Start Game
+        {{ t("lobby.startGame") }}
       </el-button>
     </footer>
   </section>

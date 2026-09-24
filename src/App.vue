@@ -1,15 +1,24 @@
 <script setup>
-import { computed, ref } from "vue";
+import { computed, ref, watchEffect } from "vue";
 import { RouterLink, RouterView, useRoute } from "vue-router";
+import en from "element-plus/es/locale/lang/en";
+import zhCn from "element-plus/es/locale/lang/zh-cn";
 import { useUser } from "./composables/useUser";
+import { useI18n } from "./i18n";
 
 const route = useRoute();
 const { user, updateUsername, reloginAsRandomUser, logout } = useUser();
+const { locale, setLocale, t } = useI18n();
 
 const showNameDialog = ref(false);
 const pendingName = ref(user.value.username);
 
-const title = computed(() => route.meta?.title || "Heigo");
+const title = computed(() => t(route.meta?.titleKey || "app.name"));
+const elementLocale = computed(() => (locale.value === "zh" ? zhCn : en));
+
+watchEffect(() => {
+  document.title = title.value === t("app.name") ? t("app.name") : `${title.value} · ${t("app.name")}`;
+});
 
 function openNameDialog() {
   pendingName.value = user.value.username;
@@ -23,14 +32,23 @@ function saveName() {
 </script>
 
 <template>
-  <div class="app-shell">
+  <el-config-provider :locale="elementLocale">
+    <div class="app-shell">
     <header class="topbar">
       <RouterLink class="brand" to="/">
         <span class="brand-mark">H</span>
-        <span class="brand-name">Heigo</span>
+        <span class="brand-name">Heigo Duel</span>
       </RouterLink>
 
       <h1 class="page-title">{{ title }}</h1>
+
+      <label class="language-picker">
+        <span class="sr-only">{{ t("app.language") }}</span>
+        <select :value="locale" :aria-label="t('app.language')" @change="setLocale($event.target.value)">
+          <option value="en">English</option>
+          <option value="zh">中文</option>
+        </select>
+      </label>
 
       <el-dropdown trigger="click" class="user-menu">
         <button class="avatar-button" type="button">
@@ -41,9 +59,9 @@ function saveName() {
         </button>
         <template #dropdown>
           <el-dropdown-menu>
-            <el-dropdown-item @click="openNameDialog">Edit Name</el-dropdown-item>
-            <el-dropdown-item @click="reloginAsRandomUser">Sign In (Random)</el-dropdown-item>
-            <el-dropdown-item divided @click="logout">Sign Out</el-dropdown-item>
+            <el-dropdown-item @click="openNameDialog">{{ t("app.editName") }}</el-dropdown-item>
+            <el-dropdown-item @click="reloginAsRandomUser">{{ t("app.randomSignIn") }}</el-dropdown-item>
+            <el-dropdown-item divided @click="logout">{{ t("app.signOut") }}</el-dropdown-item>
           </el-dropdown-menu>
         </template>
       </el-dropdown>
@@ -53,14 +71,15 @@ function saveName() {
       <RouterView />
     </main>
 
-    <el-dialog v-model="showNameDialog" title="Edit Display Name" width="420px">
-      <el-input v-model="pendingName" maxlength="30" show-word-limit placeholder="Input a name" />
+    <el-dialog v-model="showNameDialog" :title="t('app.editDisplayName')" width="420px">
+      <el-input v-model="pendingName" maxlength="30" show-word-limit :placeholder="t('app.namePlaceholder')" />
       <template #footer>
-        <el-button @click="showNameDialog = false">Cancel</el-button>
-        <el-button type="primary" @click="saveName">Save</el-button>
+        <el-button @click="showNameDialog = false">{{ t("app.cancel") }}</el-button>
+        <el-button type="primary" @click="saveName">{{ t("app.save") }}</el-button>
       </template>
     </el-dialog>
-  </div>
+    </div>
+  </el-config-provider>
 </template>
 
 <style scoped>
@@ -75,7 +94,7 @@ function saveName() {
   top: 0;
   z-index: 10;
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: auto 1fr auto auto;
   align-items: center;
   gap: 16px;
   padding: 14px 18px;
@@ -121,6 +140,31 @@ function saveName() {
   justify-self: end;
 }
 
+.language-picker select {
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 999px;
+  padding: 7px 10px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #f3f9ff;
+  cursor: pointer;
+}
+
+.language-picker option {
+  color: #1f2937;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .avatar-button {
   display: inline-flex;
   align-items: center;
@@ -155,10 +199,10 @@ function saveName() {
 
 @media (max-width: 760px) {
   .topbar {
-    grid-template-columns: auto auto;
+    grid-template-columns: auto 1fr auto;
     grid-template-areas:
-      "brand user"
-      "title title";
+      "brand language user"
+      "title title title";
     row-gap: 10px;
   }
 
@@ -173,6 +217,11 @@ function saveName() {
 
   .user-menu {
     grid-area: user;
+  }
+
+  .language-picker {
+    grid-area: language;
+    justify-self: end;
   }
 
   .username {
